@@ -126,46 +126,4 @@ scripts/build_initramfs.sh, init.sh, run_qemu.sh
 docs/STM32_PORT.md        plan for the STM32 Cortex-M4 board
 ```
 
-## Tested on
 
-- Linux 6.6 (tinyconfig-based), QEMU 8.2 with software emulation (no KVM), x86_64
-- Module compiles without warnings; the self-test passes 14/14 (24 KB streamed in each direction); host
-  to guest and guest to host over the TCP serial port both verified
-- **Not tested:** other kernel versions, KVM, the host-kernel path, real hardware
-
-## Limitations
-
-- One device instance, x86 port I/O only
-- Raw character device, not part of the kernel's tty/serial layer. Production UART
-  drivers register with `uart_driver`/`uart_ops` and get termios, line disciplines and
-  `/dev/ttyS*` semantics for free. This project is a deliberate step below that, to
-  learn the character-driver and interrupt mechanics.
-- With `MCR` loopback on **real** hardware the UART disconnects its IRQ line, so the
-  self-test needs QEMU, which does not model that.
-
-## Next steps
-
-- STM32 Cortex-M4 board: see [docs/STM32_PORT.md](docs/STM32_PORT.md)
-- Turn it into a `platform_driver` with device-tree MMIO binding (`ioremap`, `readb`/`writeb`)
-- Register with the serial core (`uart_driver`) instead of a raw cdev
-- Add DMA, and a kselftest-style test
-
-## Interview talking points
-
-- Why the kfifos need no lock (single producer, single consumer) and what each lock
-  *does* protect
-- The lost-wakeup race in TX start and why queue-then-enable closes it
-- Why `copy_to_user` can't run under a spinlock
-- 16550 FIFO trigger levels and the receive-timeout interrupt
-- What differs from a production serial driver (above) and how you would close the gap
-
-## Resume line
-
-> Developed an interrupt-driven Linux character driver for a 16550A UART: lock-free
-> kfifo RX/TX paths, blocking and non-blocking I/O with poll support, ioctl line
-> configuration and `/proc` statistics; validated with an automated QEMU self-test
-> (streaming loopback with data verification, zero overruns).
-
-Add your own numbers once you measure them.
-
-The module is licensed GPL-2.0 (`MODULE_LICENSE("GPL")`).
